@@ -1,7 +1,7 @@
 "use client"
 // src/app/mint/page.tsx
 import { useRouter } from "next/navigation"
-import { useAccount } from "wagmi"
+import { useConnections, useChainId, useChains } from "wagmi"
 import { formatEther } from "viem"
 import { Navbar } from "@/components/shared/navbar"
 import { useMint } from "@/hooks/use-mint"
@@ -14,8 +14,15 @@ function stepIndex(step: string): number {
 
 export default function MintPage() {
   const router = useRouter()
-  const { isConnected, address } = useAccount()
-  const { step, scan, mint, previewScore, scanBreakdown, isPending, isSuccess, errorMsg, mintFee } = useMint()
+  const connections = useConnections()
+  const address = connections[0]?.accounts[0]
+  const isConnected = connections.length > 0
+  
+  const chainId = useChainId()
+  const chains = useChains()
+  const chain = chains.find(c => c.id === chainId)
+
+  const { step, scan, mint, skipScan, previewScore, scanBreakdown, isPending, isSuccess, errorMsg, mintFee } = useMint()
 
   const si = stepIndex(step)
 
@@ -71,7 +78,7 @@ export default function MintPage() {
 
             <div className="glass-sm px-4 py-3 flex items-center justify-between mb-5">
               <div className="text-[13px] text-[#9FE1CB] font-mono">{address?.slice(0, 6)}…{address?.slice(-4)}</div>
-              <div className="text-[10px] text-[rgba(93,202,165,0.4)] bg-[rgba(93,202,165,0.07)] border border-[rgba(93,202,165,0.14)] rounded-full px-2.5 py-0.5">Base</div>
+              <div className="text-[10px] text-[rgba(93,202,165,0.4)] bg-[rgba(93,202,165,0.07)] border border-[rgba(93,202,165,0.14)] rounded-full px-2.5 py-0.5">{chain?.name?.split(" ")?.[0] ?? "Unknown"}</div>
             </div>
 
             {step === "scanning" ? (
@@ -210,7 +217,10 @@ export default function MintPage() {
                 ? "RPC node rate limit exceeded. Please try again later."
                 : errorMsg?.slice(0, 150) + (errorMsg && errorMsg.length > 150 ? "..." : "")}
             </div>
-            <button className="w-full text-[13px] font-medium px-4 py-3 rounded-full border border-[rgba(216,90,48,0.3)] text-[#D85A30] hover:bg-[rgba(216,90,48,0.08)] transition-all" onClick={scan}>Retry scan</button>
+            <div className="flex gap-2 w-full">
+              <button className="flex-1 text-[13px] font-medium px-4 py-3 rounded-full border border-[rgba(216,90,48,0.3)] text-[#D85A30] hover:bg-[rgba(216,90,48,0.08)] transition-all" onClick={scan}>Retry scan</button>
+              <button className="flex-1 text-[13px] font-medium px-4 py-3 rounded-full bg-[rgba(93,202,165,0.08)] text-[#9FE1CB] hover:bg-[rgba(93,202,165,0.15)] transition-all" onClick={skipScan}>Skip scan</button>
+            </div>
           </div>
         )}
       </div>

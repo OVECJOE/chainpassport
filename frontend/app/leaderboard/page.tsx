@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import Link            from "next/link"
 import { Navbar }      from "@/components/shared/navbar"
-import { useAccount }  from "wagmi"
+import { useConnections, useChainId }  from "wagmi"
 import { tierColor, type Tier } from "@/types"
 import { cn }          from "@/lib/utils"
 import { getLeaderboard, type LeaderboardEntry } from "./actions"
@@ -10,7 +10,9 @@ import { getLeaderboard, type LeaderboardEntry } from "./actions"
 type Filter = "all" | "Gold" | "Silver" | "Bronze"
 
 export default function LeaderboardPage() {
-    const { address } = useAccount()
+    const connections = useConnections()
+    const address = connections[0]?.accounts[0]
+    const chainId = useChainId()
     const [filter, setFilter] = useState<Filter>("all")
     const [leaders, setLeaders] = useState<LeaderboardEntry[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -19,11 +21,12 @@ export default function LeaderboardPage() {
 
     useEffect(() => {
         setMounted(true)
-        getLeaderboard().then(data => {
+        setIsLoading(true)
+        getLeaderboard(chainId).then(data => {
             setLeaders(data)
             setIsLoading(false)
         })
-    }, [])
+    }, [chainId])
 
     const shown = filter === "all"
         ? leaders

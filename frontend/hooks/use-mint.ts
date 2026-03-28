@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from "wagmi"
-import { ADDRESSES, ACTIVITY_TYPE, CHAIN_ID } from "@/lib/contracts"
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnections, useChainId } from "wagmi"
+import { getContractAddresses, ACTIVITY_TYPE } from "@/lib/contracts"
 import { PASSPORT_REGISTRY_ABI } from "@/lib/abis"
 import { fetchUserActivity, computeScore } from "@/lib/indexer"
 import type { ActivityEvent } from "@/types"
@@ -10,7 +10,11 @@ import type { ActivityEvent } from "@/types"
 export type MintStep = "idle" | "scanning" | "previewing" | "confirming" | "pending" | "success" | "error"
 
 export function useMint() {
-    const { address } = useAccount()
+    const connections = useConnections()
+    const address = connections[0]?.accounts[0]
+
+    const chainId = useChainId()
+    const ADDRESSES = getContractAddresses(chainId)
 
     const [step, setStep] = useState<MintStep>("idle")
     const [scannedEvents, setScannedEvents] = useState<ActivityEvent[]>([])
@@ -18,14 +22,14 @@ export function useMint() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
     const { data: mintFee } = useReadContract({
-        chainId: CHAIN_ID,
+        chainId,
         address: ADDRESSES.passportRegistry as `0x${string}`,
         abi: PASSPORT_REGISTRY_ABI,
         functionName: "minFeeWei",
     })
 
     const { data: monthlyFee } = useReadContract({
-        chainId: CHAIN_ID,
+        chainId,
         address: ADDRESSES.passportRegistry as `0x${string}`,
         abi: PASSPORT_REGISTRY_ABI,
         functionName: "monthlyFeeWei",
@@ -43,7 +47,7 @@ export function useMint() {
         setStep("scanning")
         setErrorMsg(null)
         try {
-            const events = await fetchUserActivity(address)
+            const events = await fetchUserActivity(address, undefined, chainId)
             setScannedEvents(events)
             setPreviewScore(computeScore(events))
             setStep("previewing")
@@ -55,21 +59,20 @@ export function useMint() {
 
     // Step 2: submit mint tx
     async function mint() {
-        console.log("Mint clicked! addr:", address, "fee:", mintFee)
         if (!address) {
             setErrorMsg("Wallet disconnected during minting.")
             setStep("error")
             return
         }
         if (mintFee === undefined) {
-            setErrorMsg("Could not fetch the mint fee. Please ensure your wallet is on Base Sepolia.")
+            setErrorMsg("Could not fetch the mint fee. Please ensure your wallet is on a supported network.")
             setStep("error")
             return
         }
         setStep("confirming")
         try {
             await writeContractAsync({
-                chainId: CHAIN_ID,
+                chainId,
                 address: ADDRESSES.passportRegistry as `0x${string}`,
                 abi: PASSPORT_REGISTRY_ABI,
                 functionName: "mint",
@@ -102,6 +105,7 @@ export function useMint() {
         scan,
         mint,
         reset,
+        skipScan: () => setStep("confirming"),
         scannedEvents,
         previewScore,
         scanBreakdown,
@@ -117,11 +121,14 @@ export function useMint() {
 // ── Renew subscription ────────────────────────────────────────────────────────
 
 export function useRenewSubscription() {
+    const chainId = useChainId()
+    const ADDRESSES = getContractAddresses(chainId)
+
     const { writeContractAsync, data: txHash, isPending } = useWriteContract()
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
     const { data: monthlyFee } = useReadContract({
-        chainId: CHAIN_ID,
+        chainId,
         address: ADDRESSES.passportRegistry as `0x${string}`,
         abi: PASSPORT_REGISTRY_ABI,
         functionName: "monthlyFeeWei",
@@ -131,7 +138,7 @@ export function useRenewSubscription() {
         if (monthlyFee === undefined) return
         try {
             await writeContractAsync({
-                chainId: CHAIN_ID,
+                chainId,
                 address: ADDRESSES.passportRegistry as `0x${string}`,
                 abi: PASSPORT_REGISTRY_ABI,
                 functionName: "renewSubscription",

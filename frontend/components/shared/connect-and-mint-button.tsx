@@ -2,13 +2,14 @@
 import { useState, useEffect } from "react"
 
 import { useRouter }   from "next/navigation"
-import { useAccount, useConnect } from "wagmi"
+import { useConnections, useConnect } from "wagmi"
 import { injected }    from "wagmi/connectors"
 import { usePassport } from "@/hooks/use-passport"
 
 export function ConnectAndMintButton() {
   const router = useRouter()
-  const { isConnected } = useAccount()
+  const connections = useConnections()
+  const isConnected = connections.length > 0
   const { connect }     = useConnect()
   const { hasPassport } = usePassport()
   const [mounted, setMounted] = useState(false)

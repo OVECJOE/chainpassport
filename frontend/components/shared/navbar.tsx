@@ -3,9 +3,10 @@ import { useState, useEffect } from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAccount, useConnect, useDisconnect } from "wagmi"
+import { useConnections, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { Menu, Wallet, LogOut, User, Activity, Trophy, LayoutDashboard } from "lucide-react"
+import { NetworkSwitcher } from "@/components/shared/network-switcher"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -16,7 +17,9 @@ function shortAddress(addr: string) {
 
 export function Navbar() {
   const pathname = usePathname()
-  const { address, isConnected } = useAccount()
+  const connections = useConnections()
+  const address = connections[0]?.accounts[0]
+  const isConnected = connections.length > 0
   const { connect }    = useConnect()
   const { disconnect } = useDisconnect()
   const [mounted, setMounted] = useState(false)
@@ -64,19 +67,21 @@ export function Navbar() {
         {!mounted ? (
            <div className="w-[124px] h-9 bg-[rgba(93,202,165,0.06)] border border-[rgba(93,202,165,0.12)] rounded-full animate-pulse hidden md:block" />
         ) : isConnected && address ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none">
-              <div className="flex items-center gap-2 bg-[rgba(93,202,165,0.04)] hover:bg-[rgba(93,202,165,0.08)] border border-[rgba(93,202,165,0.12)] rounded-full pl-1 pr-3 py-1 transition-all cursor-pointer">
-                 <Avatar className="w-6 h-6 border border-[rgba(93,202,165,0.2)] bg-transparent">
-                   <AvatarFallback className="bg-[rgba(93,202,165,0.2)] text-[10px] text-[#5DCAA5]">
-                     {address.slice(2, 4).toUpperCase()}
-                   </AvatarFallback>
-                 </Avatar>
-                 <span className="text-[12px] font-mono text-[rgba(93,202,165,0.8)]">
-                   {shortAddress(address)}
-                 </span>
-              </div>
-            </DropdownMenuTrigger>
+          <>
+            <NetworkSwitcher />
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none">
+                <div className="flex items-center gap-2 bg-[rgba(93,202,165,0.04)] hover:bg-[rgba(93,202,165,0.08)] border border-[rgba(93,202,165,0.12)] rounded-full pl-1 pr-3 py-1 transition-all cursor-pointer">
+                  <Avatar className="w-6 h-6 border border-[rgba(93,202,165,0.2)] bg-transparent">
+                    <AvatarFallback className="bg-[rgba(93,202,165,0.2)] text-[10px] text-[#5DCAA5]">
+                      {address.slice(2, 4).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[12px] font-mono text-[rgba(93,202,165,0.8)]">
+                    {shortAddress(address)}
+                  </span>
+                </div>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-[#0a100f] border-[rgba(93,202,165,0.1)] text-[#9FE1CB] shadow-2xl p-1 rounded-xl">
               <div className="px-3 py-3 mb-1 bg-black/40 rounded-t-lg">
                 <p className="text-[10px] uppercase tracking-widest text-[rgba(93,202,165,0.4)] mb-1">Connected Wallet</p>
@@ -94,6 +99,7 @@ export function Navbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </>
         ) : (
           <button
             onClick={() => connect({ connector: injected() })}

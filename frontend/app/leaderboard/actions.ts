@@ -1,8 +1,8 @@
 "use server"
 
 import { createPublicClient, http, type Address } from "viem"
-import { base, baseSepolia } from "wagmi/chains"
-import { ADDRESSES } from "@/lib/contracts"
+import { base, baseSepolia, liskSepolia } from "wagmi/chains"
+import { getContractAddresses, DEFAULT_CHAIN_ID } from "@/lib/contracts"
 import { PASSPORT_NFT_ABI, VERIFIER_ABI } from "@/lib/abis"
 import { type Tier, tierFromNumber } from "@/types"
 
@@ -16,8 +16,9 @@ export interface LeaderboardEntry {
     mintedAt: number
 }
 
-export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-    const chain = process.env.NEXT_PUBLIC_CHAIN_ID === "8453" ? base : baseSepolia
+export async function getLeaderboard(chainId: number = DEFAULT_CHAIN_ID): Promise<LeaderboardEntry[]> {
+    const ADDRESSES = getContractAddresses(chainId)
+    const chain = chainId === 4202 ? liskSepolia : (process.env.NEXT_PUBLIC_CHAIN_ID === "8453" ? base : baseSepolia)
     const client = createPublicClient({ chain, transport: http() })
 
     try {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useChainId } from "wagmi"
 import { fetchUserActivity } from "@/lib/indexer"
 import type { ActivityEvent } from "@/types"
 
@@ -21,20 +22,21 @@ export function useActivity(userAddress?: string, tokenId?: bigint) {
   const [filter, setFilter] = useState<ActivityFilter>("all")
   const [sort, setSort] = useState<SortOrder>("newest")
   const [page, setPage] = useState(1)
+  const chainId = useChainId()
 
   const load = useCallback(async () => {
     if (!userAddress) return
     setIsLoading(true)
     setError(null)
     try {
-      const events = await fetchUserActivity(userAddress, tokenId)
+      const events = await fetchUserActivity(userAddress, tokenId, chainId)
       setAllEvents(events)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load activity")
     } finally {
       setIsLoading(false)
     }
-  }, [userAddress, tokenId])
+  }, [userAddress, tokenId, chainId])
 
   useEffect(() => { load() }, [load])
 

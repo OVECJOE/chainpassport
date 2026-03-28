@@ -125,8 +125,8 @@ contract DeployPassport is Script {
         partnerRegistry.setPartner(2, "Aave", 10_000, true);
         partnerRegistry.setPartner(3, "ArbitrumGov", 10_000, true);
 
-        UniswapV3Adapter swapAdapter = new UniswapV3Adapter(1);
-        AaveAdapter lendAdapter = new AaveAdapter(2);
+        UniswapV3Adapter swapAdapter = new UniswapV3Adapter();
+        AaveAdapter lendAdapter = new AaveAdapter();
 
         router.setAdapter(1, address(swapAdapter));
         router.setAdapter(2, address(lendAdapter));

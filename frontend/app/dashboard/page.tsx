@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useRouter }    from "next/navigation"
-import { useAccount }   from "wagmi"
+import { useConnections, useWriteContract, useChainId } from "wagmi"
 import { Navbar }       from "@/components/shared/navbar"
 import { PassportCard } from "@/components/passport/passport-card"
 import { ActivityFeed } from "@/components/passport/activity-feed"
 import { usePassport }  from "@/hooks/use-passport"
 import { useActivity }  from "@/hooks/use-activity"
 import { useRenewSubscription } from "@/hooks/use-mint"
-import { useWriteContract } from "wagmi"
-import { ADDRESSES } from "@/lib/contracts"
+import { getContractAddresses } from "@/lib/contracts"
 import { PASSPORT_REGISTRY_ABI, PASSPORT_NFT_ABI } from "@/lib/abis"
 import { formatEther }  from "viem"
 
@@ -18,7 +17,9 @@ type Tab = "overview" | "activity" | "subscription"
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { address, isConnected } = useAccount()
+  const connections = useConnections()
+  const address = connections[0]?.accounts[0]
+  const isConnected = connections.length > 0
   const { state, hasPassport, isLoading } = usePassport()
   const [tab, setTab] = useState<Tab>("overview")
 
@@ -209,6 +210,9 @@ function ActivityTab({ address, tokenId }: { address: string; tokenId?: bigint }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function SubscriptionTab({ state }: { state: any }) {
+  const chainId = useChainId()
+  const ADDRESSES = getContractAddresses(chainId)
+
   const { renew, isPending, isSuccess, monthlyFee } = useRenewSubscription()
   const { writeContract, isPending: isActionPending } = useWriteContract()
 
@@ -218,7 +222,7 @@ function SubscriptionTab({ state }: { state: any }) {
   const now = mounted ? Date.now() : state.expiresAt?.getTime() ?? 0
 
   // eslint-disable-next-line react-hooks/purity
-  const daysLeft = state.expiresAt
+  const daysLeft = mounted && state.expiresAt
     ? Math.max(0, Math.ceil((state.expiresAt.getTime() - now) / 86400000))
     : 0
 
@@ -303,6 +307,7 @@ function SubscriptionTab({ state }: { state: any }) {
           <button 
             disabled={isActionPending}
             onClick={() => writeContract({
+              chainId,
               address: ADDRESSES.passportRegistry as `0x${string}`,
               abi: PASSPORT_REGISTRY_ABI,
               functionName: "cancelSubscription",
@@ -318,6 +323,7 @@ function SubscriptionTab({ state }: { state: any }) {
           <button 
             disabled={isActionPending}
             onClick={() => writeContract({
+              chainId,
               address: ADDRESSES.passportNFT as `0x${string}`,
               abi: PASSPORT_NFT_ABI,
               functionName: "burn",

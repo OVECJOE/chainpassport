@@ -1,16 +1,25 @@
 "use client"
 
-import { useReadContract, useReadContracts, useAccount } from "wagmi"
-import { ADDRESSES } from "@/lib/contracts"
+import { config } from "@/lib/wagmi"
+type ChainId = typeof config.chains[number]["id"]
+
+import { useReadContract, useReadContracts, useConnections, useChainId } from "wagmi"
+import { getContractAddresses, DEFAULT_CHAIN_ID } from "@/lib/contracts"
 import { PASSPORT_REGISTRY_ABI, SCORE_ENGINE_ABI, VERIFIER_ABI } from "@/lib/abis"
 import { tierFromNumber, type PassportState, type Tier } from "@/types"
 
 export function usePassport(overrideAddress?: string) {
-    const { address: connectedAddress } = useAccount()
+    const connections = useConnections()
+    const connectedAddress = connections[0]?.accounts[0]
+    const walletChainId = useChainId()
     const address = overrideAddress ?? connectedAddress
+    // useChainId() provides the current chain
+    const chainId = (walletChainId ?? DEFAULT_CHAIN_ID) as ChainId
+    const ADDRESSES = getContractAddresses(chainId)
 
     // 1. Get tokenId
     const { data: tokenId, isLoading: loadingTokenId } = useReadContract({
+        chainId,
         address: ADDRESSES.passportRegistry as `0x${string}`,
         abi: PASSPORT_REGISTRY_ABI,
         functionName: "passportOf",
@@ -24,18 +33,21 @@ export function usePassport(overrideAddress?: string) {
     const { data: scoreData, isLoading: loadingScore } = useReadContracts({
         contracts: [
             {
+                chainId,
                 address: ADDRESSES.scoreEngine as `0x${string}`,
                 abi: SCORE_ENGINE_ABI,
                 functionName: "currentScore",
                 args: [tokenId!],
             },
             {
+                chainId,
                 address: ADDRESSES.scoreEngine as `0x${string}`,
                 abi: SCORE_ENGINE_ABI,
                 functionName: "currentTier",
                 args: [tokenId!],
             },
             {
+                chainId,
                 address: ADDRESSES.scoreEngine as `0x${string}`,
                 abi: SCORE_ENGINE_ABI,
                 functionName: "activityCount",
@@ -47,6 +59,7 @@ export function usePassport(overrideAddress?: string) {
 
     // 3. Subscription state from registry
     const { data: passportData, isLoading: loadingPassportData } = useReadContract({
+        chainId,
         address: ADDRESSES.passportRegistry as `0x${string}`,
         abi: PASSPORT_REGISTRY_ABI,
         functionName: "passportData",
@@ -56,6 +69,7 @@ export function usePassport(overrideAddress?: string) {
 
     // 4. Subscription active flag
     const { data: subscriptionActive } = useReadContract({
+        chainId,
         address: ADDRESSES.passportRegistry as `0x${string}`,
         abi: PASSPORT_REGISTRY_ABI,
         functionName: "isSubscriptionActive",
@@ -97,7 +111,12 @@ export function usePassport(overrideAddress?: string) {
 // ── Hook for public passport page (any wallet address) ───────────────────────
 
 export function usePublicPassport(address: string) {
+    const walletChainId = useChainId()
+    const chainId = (walletChainId ?? DEFAULT_CHAIN_ID) as ChainId
+    const ADDRESSES = getContractAddresses(chainId)
+
     const { data: result, isLoading } = useReadContract({
+        chainId,
         address: ADDRESSES.verifier as `0x${string}`,
         abi: VERIFIER_ABI,
         functionName: "verify",

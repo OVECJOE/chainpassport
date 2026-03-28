@@ -74,7 +74,7 @@ export default function PublicPassportPage({ params }: { params: Promise<{ addre
           <div className="text-[22px] font-medium text-[#9FE1CB] tracking-tight mb-1">Web3 Passport</div>
           {mintedAt && (
             <div className="text-[11px] text-[rgba(93,202,165,0.22)]">
-              member since {mintedAt.toLocaleDateString("en-US", { month: "long", year: "numeric" })} · Base
+              member since {mintedAt.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </div>
           )}
         </div>
@@ -105,7 +105,7 @@ export default function PublicPassportPage({ params }: { params: Promise<{ addre
             { label: "activities", value: result.activityCount.toString() },
             // eslint-disable-next-line react-hooks/purity
             { label: "on-chain",   value: mintedAt ? `${Math.floor(((mounted ? Date.now() : mintedAt.getTime()) - mintedAt.getTime()) / 2592000000)}mo` : "—" },
-            { label: "ranking",    value: "top 12%" },
+            { label: "passport #", value: result.tokenId.toString() },
           ].map(s => (
             <div key={s.label} className="glass-sm p-3 text-center">
               <div className="text-[18px] font-medium text-[#9FE1CB]">{s.value}</div>
